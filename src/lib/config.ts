@@ -6,8 +6,9 @@
 export const practice = {
   name: "Dt. Pragya Choudhary",
   credential: "Clinical Dietitian & Nutritionist",
-  // Photo shown in the hero. Save the image to public/pragya.jpg (set to "" to use the emoji fallback).
-  heroPhoto: "/pragya.jpg",
+  // Photo shown in the hero. Put an image in public/ and set its path here (e.g. "/pragya.jpg").
+  // Empty string => styled placeholder is shown instead.
+  heroPhoto: "",
   tagline: "Science-backed nutrition for lasting weight loss & better health.",
   intro:
     "I'm a clinical dietitian who helps people manage PCOS, thyroid, diabetes, and weight through personalised Indian meal plans and 1:1 online consultations — no fad diets, no starving, just results that last.",
