@@ -27,7 +27,10 @@ export default async function RootLayout({
               © {new Date().getFullYear()} {practice.name}. {practice.credential}.
             </p>
             <p>
-              {practice.email} · {practice.phone}
+              {practice.email}
+              {practice.phone && !practice.phone.includes("xxx")
+                ? ` · ${practice.phone}`
+                : ""}
             </p>
           </div>
         </footer>
