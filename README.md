@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NutriCare — Online Nutrition Consultation SaaS
 
-## Getting Started
+A live SaaS web app for **Dt. Pragya Choudhary** (clinical dietitian) to run her practice
+online: a marketing site, online booking, a patient portal (diet plans, documents,
+messaging), and a practice dashboard for the nutritionist.
 
-First, run the development server:
+Built with **Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4** and
+**Supabase** (Postgres + Auth, with Row Level Security).
+
+> **Backend is live on Supabase.** Real auth (signups auto-confirmed server-side), Postgres
+> with RLS so patients only ever see their own data. Config in `.env.local` (gitignored).
+> Payments are deferred — bookings are created `unpaid` and the nutritionist marks them paid
+> in the dashboard (Razorpay can be added later).
+
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install          # if node_modules isn't present
+npm run dev          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Requires `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+and `SUPABASE_SERVICE_ROLE_KEY`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Accounts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Nutritionist (admin):** `dieticianpragya@gmail.com` — seed/reset the password with
+  `node scripts/seed-admin.mjs [password]`.
+- **Patients:** self-serve — anyone can sign up, or create an account inline while booking.
 
-## Learn More
+## What's included
 
-To learn more about Next.js, take a look at the following resources:
+- **Landing page** (`/`) — hero, services & pricing, how-it-works, testimonials, CTAs.
+- **Booking flow** (`/book`) — 4 steps: choose service → pick date/time (live availability)
+  → your details (creates an account) → mock payment → confirmation.
+- **Patient portal** (`/dashboard`) — upcoming/past appointments, diet plans & documents,
+  two-way messaging with the nutritionist.
+- **Practice dashboard** (`/admin`) — stats, upcoming schedule, patient list, share diet
+  plans/notes, and message any patient.
+- **Auth** — signup/login/logout with an httpOnly session cookie.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+  lib/
+    config.ts     # <- EDIT to rebrand: name, credential, services, availability
+    types.ts      # domain types
+    store.ts      # data layer (the Supabase swap point) + seed data
+    session.ts    # cookie session helpers
+    slots.ts      # availability + date/money formatters (client-safe)
+  app/
+    page.tsx              # landing
+    book/                 # booking flow
+    login/  signup/       # auth pages
+    dashboard/            # patient portal
+    admin/                # nutritionist dashboard
+    api/                  # auth, bookings, slots, docs, messages route handlers
+  components/             # SiteHeader, BookingFlow, AuthForm, MessageThread, AdminConsole
+```
 
-## Deploy on Vercel
+## Rebranding
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open `src/lib/config.ts` and edit the `practice` object — name, credentials, tagline,
+services & prices, working hours. Everything on the site reads from there.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Going to production
+
+1. **Supabase** — replace the function bodies in `src/lib/store.ts` with Supabase queries
+   and use Supabase Auth in `src/lib/session.ts`. The rest of the app only calls those
+   helpers, so nothing else changes.
+2. **Payments** — swap `MockPayment` in `BookingFlow.tsx` and the booking route for Stripe
+   Checkout / Razorpay; set `payment` based on the real webhook.
+3. **Video** — deferred for now (per scope). Add a Zoom/Google Meet link per booking, or a
+   built-in provider (Daily/Twilio) later.
+4. **Email** — wire confirmations (Resend/SendGrid) where the confirmation step is shown.
+5. Deploy to **Vercel**.
