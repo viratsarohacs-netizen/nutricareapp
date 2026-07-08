@@ -10,10 +10,15 @@ import type {
   DocType,
   ProgressLog,
   Intake,
+  MealPlan,
+  FoodLog,
+  DailyHabit,
 } from "@/lib/types";
 import { formatDateLong, formatTime, formatMoney } from "@/lib/slots";
 import { MessageThread } from "@/components/MessageThread";
 import { ProgressPanel } from "@/components/ProgressPanel";
+import { MealPlanBuilder } from "@/components/MealPlanBuilder";
+import { MealPlanView } from "@/components/MealPlanView";
 
 interface PatientBundle {
   user: SafeUser;
@@ -22,6 +27,9 @@ interface PatientBundle {
   bookings: Booking[];
   progress: ProgressLog[];
   intake: Intake | null;
+  mealPlans: MealPlan[];
+  foodLogs: FoodLog[];
+  habits: DailyHabit[];
 }
 
 export function AdminConsole({
@@ -86,7 +94,7 @@ export function AdminConsole({
 }
 
 function PatientDetail({ bundle }: { bundle: PatientBundle }) {
-  const { user, docs, messages, bookings, progress, intake } = bundle;
+  const { user, docs, messages, bookings, progress, intake, mealPlans, foodLogs, habits } = bundle;
   return (
     <div className="space-y-6">
       <Panel title={`${user.name} — overview`}>
@@ -127,6 +135,65 @@ function PatientDetail({ bundle }: { bundle: PatientBundle }) {
             startWeightKg={intake?.startWeightKg}
             readOnly
           />
+        </Panel>
+      </div>
+
+      <Panel title="Meal plans">
+        {mealPlans.length > 0 && (
+          <div className="space-y-3 mb-4">
+            {mealPlans.map((p) => (
+              <MealPlanView key={p.id} plan={p} />
+            ))}
+          </div>
+        )}
+        <MealPlanBuilder patientId={user.id} />
+      </Panel>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Panel title="Food journal (recent)">
+          {foodLogs.length === 0 ? (
+            <p className="text-sm text-brand-600/60">No meals logged yet.</p>
+          ) : (
+            <ul className="space-y-1.5 max-h-56 overflow-y-auto text-sm">
+              {foodLogs.map((l) => (
+                <li key={l.id} className="flex gap-2 text-brand-800/80">
+                  <span className="shrink-0 text-xs text-brand-600/70 w-14">
+                    {new Date(l.date + "T00:00:00").toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                  <span className="font-medium text-brand-700 capitalize shrink-0 w-20">
+                    {l.mealType}
+                  </span>
+                  <span>{l.description}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel title="Habits (last 7 days)">
+          {habits.length === 0 ? (
+            <p className="text-sm text-brand-600/60">No habit entries yet.</p>
+          ) : (
+            <ul className="space-y-1.5 text-sm">
+              {habits.map((h) => (
+                <li key={h.id} className="flex items-center gap-3 text-brand-800/80">
+                  <span className="text-xs text-brand-600/70 w-14 shrink-0">
+                    {new Date(h.date + "T00:00:00").toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                  <span title="water">💧 {h.waterGlasses}</span>
+                  {h.sleepHours != null && <span title="sleep">😴 {h.sleepHours}h</span>}
+                  <span title="exercised">{h.exercised ? "🏃 ✓" : "🏃 ✗"}</span>
+                  <span title="followed plan">{h.followedPlan ? "🥗 ✓" : "🥗 ✗"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Panel>
       </div>
 

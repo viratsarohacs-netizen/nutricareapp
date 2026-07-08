@@ -7,12 +7,19 @@ import {
   listMessagesForPatient,
   listProgress,
   getIntake,
+  listMealPlans,
+  listFoodLogs,
+  listHabits,
+  getMyReview,
 } from "@/lib/store";
 import { formatDateLong, formatTime, formatMoney, upcomingDays } from "@/lib/slots";
 import { MessageThread } from "@/components/MessageThread";
 import { ProgressPanel } from "@/components/ProgressPanel";
 import { IntakeForm } from "@/components/IntakeForm";
 import { RescheduleControls } from "@/components/RescheduleControls";
+import { DailyTracker } from "@/components/DailyTracker";
+import { MealPlanView } from "@/components/MealPlanView";
+import { ReviewForm } from "@/components/ReviewForm";
 
 const typeBadge: Record<string, string> = {
   plan: "bg-brand-100 text-brand-700",
@@ -25,14 +32,21 @@ export default async function Dashboard() {
   if (!user) redirect("/login");
   if (user.role === "admin") redirect("/admin");
 
-  const [bookings, docs, messages, progress, intake] = await Promise.all([
-    listBookingsForPatient(user.id),
-    listDocsForPatient(user.id),
-    listMessagesForPatient(user.id),
-    listProgress(user.id),
-    getIntake(user.id),
-  ]);
+  const [bookings, docs, messages, progress, intake, mealPlans, foodLogs, habits, myReview] =
+    await Promise.all([
+      listBookingsForPatient(user.id),
+      listDocsForPatient(user.id),
+      listMessagesForPatient(user.id),
+      listProgress(user.id),
+      getIntake(user.id),
+      listMealPlans(user.id),
+      listFoodLogs(user.id),
+      listHabits(user.id, 1),
+      getMyReview(user.id),
+    ]);
   const days = upcomingDays();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayHabit = habits.find((h) => h.date === todayStr) ?? null;
 
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = bookings.filter((b) => b.date >= today && b.status !== "cancelled");
@@ -56,6 +70,20 @@ export default async function Dashboard() {
       <div className="mt-10 grid lg:grid-cols-3 gap-6">
         {/* Left column */}
         <section className="lg:col-span-2 space-y-6">
+          <Panel title="Today">
+            <DailyTracker todayHabit={todayHabit} recentLogs={foodLogs} />
+          </Panel>
+
+          {mealPlans.length > 0 && (
+            <Panel title="My meal plans">
+              <div className="space-y-4">
+                {mealPlans.map((p) => (
+                  <MealPlanView key={p.id} plan={p} />
+                ))}
+              </div>
+            </Panel>
+          )}
+
           <Panel title="My progress">
             <ProgressPanel
               logs={progress}
@@ -140,6 +168,9 @@ export default async function Dashboard() {
           </Panel>
           <Panel title="Messages" full>
             <MessageThread messages={messages} patientId={user.id} />
+          </Panel>
+          <Panel title="Rate your experience">
+            <ReviewForm existing={myReview} />
           </Panel>
         </section>
       </div>

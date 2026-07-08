@@ -11,6 +11,11 @@ import type {
   PaymentStatus,
   ProgressLog,
   Intake,
+  MealPlan,
+  FoodLog,
+  DailyHabit,
+  Review,
+  MealType,
 } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -365,4 +370,220 @@ export async function upsertIntake(input: Intake): Promise<Intake | null> {
     .single();
   if (error || !data) return null;
   return toIntake(data);
+}
+
+// ── Meal plans ───────────────────────────────────────────────────────────────
+function toMealPlan(r: any): MealPlan {
+  return {
+    id: r.id,
+    patientId: r.patient_id,
+    title: r.title,
+    days: r.days ?? [],
+    notes: r.notes ?? null,
+    createdBy: r.created_by,
+    createdAt: r.created_at,
+  };
+}
+
+export async function listMealPlans(patientId: string): Promise<MealPlan[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("meal_plans")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(toMealPlan);
+}
+
+export async function createMealPlan(
+  p: Omit<MealPlan, "id" | "createdAt">
+): Promise<MealPlan | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("meal_plans")
+    .insert({
+      patient_id: p.patientId,
+      title: p.title,
+      days: p.days,
+      notes: p.notes ?? null,
+      created_by: p.createdBy,
+    })
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return toMealPlan(data);
+}
+
+// ── Food journal ─────────────────────────────────────────────────────────────
+function toFoodLog(r: any): FoodLog {
+  return {
+    id: r.id,
+    patientId: r.patient_id,
+    date: r.date,
+    mealType: r.meal_type as MealType,
+    description: r.description,
+    createdAt: r.created_at,
+  };
+}
+
+export async function listFoodLogs(patientId: string, limit = 40): Promise<FoodLog[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("food_logs")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map(toFoodLog);
+}
+
+export async function addFoodLog(input: {
+  patientId: string;
+  date: string;
+  mealType: MealType;
+  description: string;
+}): Promise<FoodLog | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("food_logs")
+    .insert({
+      patient_id: input.patientId,
+      date: input.date,
+      meal_type: input.mealType,
+      description: input.description,
+    })
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return toFoodLog(data);
+}
+
+// ── Daily habits ─────────────────────────────────────────────────────────────
+function toHabit(r: any): DailyHabit {
+  return {
+    id: r.id,
+    patientId: r.patient_id,
+    date: r.date,
+    waterGlasses: r.water_glasses,
+    sleepHours: r.sleep_hours != null ? Number(r.sleep_hours) : null,
+    exercised: r.exercised,
+    followedPlan: r.followed_plan,
+  };
+}
+
+export async function listHabits(patientId: string, limit = 14): Promise<DailyHabit[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("daily_habits")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("date", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map(toHabit);
+}
+
+export async function upsertHabit(input: {
+  patientId: string;
+  date: string;
+  waterGlasses?: number;
+  sleepHours?: number | null;
+  exercised?: boolean;
+  followedPlan?: boolean;
+}): Promise<DailyHabit | null> {
+  const supabase = await createClient();
+  // fetch existing so partial updates merge instead of clobber
+  const { data: existing } = await supabase
+    .from("daily_habits")
+    .select("*")
+    .eq("patient_id", input.patientId)
+    .eq("date", input.date)
+    .maybeSingle();
+
+  const row = {
+    patient_id: input.patientId,
+    date: input.date,
+    water_glasses: input.waterGlasses ?? existing?.water_glasses ?? 0,
+    sleep_hours: input.sleepHours !== undefined ? input.sleepHours : existing?.sleep_hours ?? null,
+    exercised: input.exercised ?? existing?.exercised ?? false,
+    followed_plan: input.followedPlan ?? existing?.followed_plan ?? false,
+  };
+  const { data, error } = await supabase
+    .from("daily_habits")
+    .upsert(row, { onConflict: "patient_id,date" })
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return toHabit(data);
+}
+
+// ── Reviews ──────────────────────────────────────────────────────────────────
+function toReview(r: any): Review {
+  return {
+    id: r.id,
+    patientId: r.patient_id,
+    name: r.name,
+    rating: r.rating,
+    text: r.text,
+    approved: r.approved,
+    createdAt: r.created_at,
+  };
+}
+
+// Public (landing page) — RLS exposes only approved rows to anonymous readers.
+export async function listApprovedReviews(limit = 6): Promise<Review[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("approved", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map(toReview);
+}
+
+export async function listAllReviews(): Promise<Review[]> {
+  const supabase = await createClient(); // admin sees all via RLS
+  const { data } = await supabase
+    .from("reviews")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(toReview);
+}
+
+export async function getMyReview(patientId: string): Promise<Review | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("patient_id", patientId)
+    .maybeSingle();
+  return data ? toReview(data) : null;
+}
+
+export async function submitReview(input: {
+  patientId: string;
+  name: string;
+  rating: number;
+  text: string;
+}): Promise<Review | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("reviews")
+    .insert({
+      patient_id: input.patientId,
+      name: input.name,
+      rating: input.rating,
+      text: input.text,
+    })
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return toReview(data);
+}
+
+export async function setReviewApproval(id: string, approved: boolean): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("reviews").update({ approved }).eq("id", id);
+  return !error;
 }

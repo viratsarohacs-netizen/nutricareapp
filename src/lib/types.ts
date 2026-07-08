@@ -84,6 +84,57 @@ export interface Intake {
   updatedAt?: string | null;
 }
 
+export interface MealDay {
+  day: string; // "Day 1" / "Monday"
+  meals: {
+    breakfast?: string;
+    lunch?: string;
+    snack?: string;
+    dinner?: string;
+  };
+}
+
+export interface MealPlan {
+  id: string;
+  patientId: string;
+  title: string;
+  days: MealDay[];
+  notes?: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export type MealType = "breakfast" | "lunch" | "snack" | "dinner";
+
+export interface FoodLog {
+  id: string;
+  patientId: string;
+  date: string;
+  mealType: MealType;
+  description: string;
+  createdAt: string;
+}
+
+export interface DailyHabit {
+  id: string;
+  patientId: string;
+  date: string;
+  waterGlasses: number;
+  sleepHours?: number | null;
+  exercised: boolean;
+  followedPlan: boolean;
+}
+
+export interface Review {
+  id: string;
+  patientId: string;
+  name: string;
+  rating: number;
+  text: string;
+  approved: boolean;
+  createdAt: string;
+}
+
 export interface DB {
   users: User[];
   services: Service[];

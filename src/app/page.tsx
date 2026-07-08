@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { practice } from "@/lib/config";
-import { listServices } from "@/lib/store";
+import { listServices, listApprovedReviews } from "@/lib/store";
 import { formatMoney } from "@/lib/slots";
 import { BmiCalculator } from "@/components/BmiCalculator";
 import { Faq } from "@/components/Faq";
 
 export default async function Home() {
-  const services = await listServices();
+  const [services, reviews] = await Promise.all([listServices(), listApprovedReviews()]);
 
   return (
     <main>
@@ -190,23 +190,26 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <h2 className="text-3xl font-bold text-brand-900 text-center">What patients say</h2>
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
-          {[
-            ["“Finally a diet that works with Indian food. Lost 7kg in 3 months and my PCOS symptoms are so much better.”", "— Priya S., Gurugram"],
-            ["“My thyroid and sugar levels are under control now. Dt. Pragya's plans are simple and home-cooked.”", "— Rahul M., Pune"],
-            ["“No starving, no weird supplements — just realistic guidance and constant support on WhatsApp.”", "— Sneha K., Bengaluru"],
-          ].map(([quote, who]) => (
-            <figure key={who} className="rounded-2xl bg-white p-6 ring-1 ring-brand-100">
-              <div className="text-brand-400">★★★★★</div>
-              <blockquote className="mt-3 text-brand-800">{quote}</blockquote>
-              <figcaption className="mt-4 text-sm font-medium text-brand-600">{who}</figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
+      {/* Testimonials — real, approved patient reviews */}
+      {reviews.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 py-20">
+          <h2 className="text-3xl font-bold text-brand-900 text-center">What patients say</h2>
+          <div className="mt-12 grid md:grid-cols-3 gap-6">
+            {reviews.map((r) => (
+              <figure key={r.id} className="rounded-2xl bg-white p-6 ring-1 ring-brand-100">
+                <div className="text-amber-400">
+                  {"★".repeat(r.rating)}
+                  <span className="text-brand-200">{"★".repeat(5 - r.rating)}</span>
+                </div>
+                <blockquote className="mt-3 text-brand-800">“{r.text}”</blockquote>
+                <figcaption className="mt-4 text-sm font-medium text-brand-600">
+                  — {r.name}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="mx-auto max-w-6xl px-6 pb-20">

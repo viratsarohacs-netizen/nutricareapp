@@ -7,9 +7,14 @@ import {
   listMessagesForPatient,
   listProgress,
   getIntake,
+  listMealPlans,
+  listFoodLogs,
+  listHabits,
+  listAllReviews,
 } from "@/lib/store";
 import { formatMoney } from "@/lib/slots";
 import { AdminConsole } from "@/components/AdminConsole";
+import { ReviewModeration } from "@/components/ReviewModeration";
 import { toSafe } from "@/lib/session";
 import { BarChart, type Bar } from "@/components/BarChart";
 
@@ -18,7 +23,11 @@ export default async function AdminPage() {
   if (!user) redirect("/login");
   if (user.role !== "admin") redirect("/dashboard");
 
-  const [bookings, patientUsers] = await Promise.all([listBookings(), listPatients()]);
+  const [bookings, patientUsers, allReviews] = await Promise.all([
+    listBookings(),
+    listPatients(),
+    listAllReviews(),
+  ]);
   const patients = await Promise.all(
     patientUsers.map(async (p) => ({
       user: toSafe(p),
@@ -26,6 +35,9 @@ export default async function AdminPage() {
       messages: await listMessagesForPatient(p.id),
       progress: await listProgress(p.id),
       intake: await getIntake(p.id),
+      mealPlans: await listMealPlans(p.id),
+      foodLogs: await listFoodLogs(p.id, 20),
+      habits: await listHabits(p.id, 7),
       bookings: bookings.filter((b) => b.patientId === p.id),
     }))
   );
@@ -87,6 +99,17 @@ export default async function AdminPage() {
       </div>
 
       <AdminConsole patients={patients} upcoming={upcoming} />
+
+      {/* Reviews moderation */}
+      <div className="mt-8 rounded-2xl bg-white ring-1 ring-brand-100 p-5">
+        <h2 className="font-semibold text-brand-900 mb-4">
+          Patient reviews{" "}
+          <span className="text-xs font-normal text-brand-600/70">
+            (approved ones appear on the website)
+          </span>
+        </h2>
+        <ReviewModeration reviews={allReviews} />
+      </div>
     </main>
   );
 }
