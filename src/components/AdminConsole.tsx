@@ -146,7 +146,7 @@ function PatientDetail({ bundle }: { bundle: PatientBundle }) {
             ))}
           </div>
         )}
-        <MealPlanBuilder patientId={user.id} />
+        <MealPlanBuilder patientId={user.id} lastPlan={mealPlans[0] ?? null} />
       </Panel>
 
       <div className="grid md:grid-cols-2 gap-6">

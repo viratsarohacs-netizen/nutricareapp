@@ -587,3 +587,37 @@ export async function setReviewApproval(id: string, approved: boolean): Promise<
   const { error } = await supabase.from("reviews").update({ approved }).eq("id", id);
   return !error;
 }
+
+// ── Meal library (dietitian's reusable meal bank) ────────────────────────────
+export interface LibraryMeal {
+  id: string;
+  category: MealType;
+  text: string;
+}
+
+export async function listMealLibrary(): Promise<LibraryMeal[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("meal_library")
+    .select("id, category, text")
+    .order("category")
+    .order("text");
+  return (data ?? []) as LibraryMeal[];
+}
+
+export async function addLibraryMeal(category: MealType, text: string): Promise<LibraryMeal | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("meal_library")
+    .insert({ category, text })
+    .select("id, category, text")
+    .single();
+  if (error || !data) return null;
+  return data as LibraryMeal;
+}
+
+export async function deleteLibraryMeal(id: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("meal_library").delete().eq("id", id);
+  return !error;
+}

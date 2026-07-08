@@ -52,6 +52,9 @@ Legend: ✅ live · 🔜 planned · 💤 deferred
 | Patient list + per-patient detail | ✅ | `AdminConsole.tsx` |
 | Per-patient: health profile, progress chart, food journal, habit history | ✅ | Read-only views of patient data |
 | Meal-plan builder (multi-day grid, notes) | ✅ | `MealPlanBuilder.tsx`, admin-only insert |
+| ⚡ Plan templates (Weight Loss Veg / PCOS / Diabetes / 3-day Reset, 7-day one-click) | ✅ | `src/lib/mealTemplates.ts` — edit/add templates there |
+| Meal library — reusable meal bank with pick-chips + save-as-you-type | ✅ | `meal_library` table (40 seeded Indian meals), `/api/meal-library`, admin-only |
+| Copy tools: copy prev day · apply Day 1 to all · + full week · copy last plan | ✅ | In `MealPlanBuilder.tsx` |
 | Share diet plans / reports / notes | ✅ | `/api/docs` |
 | Message any patient | ✅ | |
 | Mark bookings paid / unpaid | ✅ | Patients cannot touch payment (server-enforced) |
@@ -91,10 +94,10 @@ Legend: ✅ live · 🔜 planned · 💤 deferred
 
 ## Database tables (all with RLS)
 
-`profiles` · `services` · `bookings` · `diet_docs` · `messages` · `progress_logs` · `intakes` · `meal_plans` · `food_logs` · `daily_habits` · `reviews`
+`profiles` · `services` · `bookings` · `diet_docs` · `messages` · `progress_logs` · `intakes` · `meal_plans` · `meal_library` · `food_logs` · `daily_habits` · `reviews`
 
 ## API routes
 
-`/api/auth/{signup,login,logout}` · `/api/bookings` (+`/[id]` PATCH) · `/api/slots` · `/api/docs` · `/api/messages` · `/api/progress` · `/api/intake` · `/api/meal-plans` · `/api/food-logs` · `/api/habits` · `/api/reviews` · `/api/keepalive`
+`/api/auth/{signup,login,logout}` · `/api/bookings` (+`/[id]` PATCH) · `/api/slots` · `/api/docs` · `/api/messages` · `/api/progress` · `/api/intake` · `/api/meal-plans` · `/api/meal-library` · `/api/food-logs` · `/api/habits` · `/api/reviews` · `/api/keepalive`
 
 > **Keep this file updated** — when a feature ships, move it to the right section with ✅.
