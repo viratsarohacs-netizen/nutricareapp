@@ -2,15 +2,26 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Booking, DietDoc, Message, SafeUser, DocType } from "@/lib/types";
+import type {
+  Booking,
+  DietDoc,
+  Message,
+  SafeUser,
+  DocType,
+  ProgressLog,
+  Intake,
+} from "@/lib/types";
 import { formatDateLong, formatTime, formatMoney } from "@/lib/slots";
 import { MessageThread } from "@/components/MessageThread";
+import { ProgressPanel } from "@/components/ProgressPanel";
 
 interface PatientBundle {
   user: SafeUser;
   docs: DietDoc[];
   messages: Message[];
   bookings: Booking[];
+  progress: ProgressLog[];
+  intake: Intake | null;
 }
 
 export function AdminConsole({
@@ -75,7 +86,7 @@ export function AdminConsole({
 }
 
 function PatientDetail({ bundle }: { bundle: PatientBundle }) {
-  const { user, docs, messages, bookings } = bundle;
+  const { user, docs, messages, bookings, progress, intake } = bundle;
   return (
     <div className="space-y-6">
       <Panel title={`${user.name} — overview`}>
@@ -89,6 +100,35 @@ function PatientDetail({ bundle }: { bundle: PatientBundle }) {
           ))}
         </div>
       </Panel>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Panel title="Health profile">
+          {intake?.updatedAt ? (
+            <div className="grid grid-cols-2 gap-y-1 text-sm">
+              <IntakeRow k="Age" v={intake.age?.toString()} />
+              <IntakeRow k="Height" v={intake.heightCm ? `${intake.heightCm} cm` : ""} />
+              <IntakeRow k="Start" v={intake.startWeightKg ? `${intake.startWeightKg} kg` : ""} />
+              <IntakeRow k="Goal" v={intake.goalWeightKg ? `${intake.goalWeightKg} kg` : ""} />
+              <IntakeRow k="Activity" v={intake.activityLevel} />
+              <IntakeRow k="Diet" v={intake.dietPref} />
+              <IntakeRow k="Conditions" v={intake.conditions} block />
+              <IntakeRow k="Allergies" v={intake.allergies} block />
+              <IntakeRow k="Goals" v={intake.goals} block />
+            </div>
+          ) : (
+            <p className="text-sm text-brand-600/60">Patient hasn&apos;t filled their health profile yet.</p>
+          )}
+        </Panel>
+
+        <Panel title="Progress">
+          <ProgressPanel
+            logs={progress}
+            goalWeightKg={intake?.goalWeightKg}
+            startWeightKg={intake?.startWeightKg}
+            readOnly
+          />
+        </Panel>
+      </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         <Panel title="Diet plans & notes">
@@ -216,6 +256,16 @@ function AddDocForm({ patientId }: { patientId: string }) {
         {busy ? "Saving…" : "Share with patient"}
       </button>
     </form>
+  );
+}
+
+function IntakeRow({ k, v, block }: { k: string; v?: string | null; block?: boolean }) {
+  if (!v) return null;
+  return (
+    <div className={block ? "col-span-2 mt-1" : ""}>
+      <span className="text-brand-600/70">{k}: </span>
+      <span className="text-brand-900 font-medium capitalize">{v}</span>
+    </div>
   );
 }
 

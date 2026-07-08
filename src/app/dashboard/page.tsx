@@ -5,9 +5,14 @@ import {
   listBookingsForPatient,
   listDocsForPatient,
   listMessagesForPatient,
+  listProgress,
+  getIntake,
 } from "@/lib/store";
-import { formatDateLong, formatTime, formatMoney } from "@/lib/slots";
+import { formatDateLong, formatTime, formatMoney, upcomingDays } from "@/lib/slots";
 import { MessageThread } from "@/components/MessageThread";
+import { ProgressPanel } from "@/components/ProgressPanel";
+import { IntakeForm } from "@/components/IntakeForm";
+import { RescheduleControls } from "@/components/RescheduleControls";
 
 const typeBadge: Record<string, string> = {
   plan: "bg-brand-100 text-brand-700",
@@ -20,11 +25,14 @@ export default async function Dashboard() {
   if (!user) redirect("/login");
   if (user.role === "admin") redirect("/admin");
 
-  const [bookings, docs, messages] = await Promise.all([
+  const [bookings, docs, messages, progress, intake] = await Promise.all([
     listBookingsForPatient(user.id),
     listDocsForPatient(user.id),
     listMessagesForPatient(user.id),
+    listProgress(user.id),
+    getIntake(user.id),
   ]);
+  const days = upcomingDays();
 
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = bookings.filter((b) => b.date >= today && b.status !== "cancelled");
@@ -46,27 +54,35 @@ export default async function Dashboard() {
       </div>
 
       <div className="mt-10 grid lg:grid-cols-3 gap-6">
-        {/* Appointments */}
+        {/* Left column */}
         <section className="lg:col-span-2 space-y-6">
+          <Panel title="My progress">
+            <ProgressPanel
+              logs={progress}
+              goalWeightKg={intake?.goalWeightKg}
+              startWeightKg={intake?.startWeightKg}
+            />
+          </Panel>
+
           <Panel title="Upcoming appointments">
             {upcoming.length === 0 ? (
               <Empty text="No upcoming sessions. Ready to book one?" />
             ) : (
               <ul className="space-y-3">
                 {upcoming.map((b) => (
-                  <li
-                    key={b.id}
-                    className="flex items-center justify-between rounded-xl bg-brand-50 ring-1 ring-brand-100 px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-semibold text-brand-900">{b.serviceName}</p>
-                      <p className="text-sm text-brand-700">
-                        {formatDateLong(b.date)} · {formatTime(b.time)}
-                      </p>
+                  <li key={b.id} className="rounded-xl bg-brand-50 ring-1 ring-brand-100 px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-brand-900">{b.serviceName}</p>
+                        <p className="text-sm text-brand-700">
+                          {formatDateLong(b.date)} · {formatTime(b.time)}
+                        </p>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full bg-brand-200 text-brand-800 font-medium capitalize">
+                        {b.status}
+                      </span>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-brand-200 text-brand-800 font-medium capitalize">
-                      {b.status}
-                    </span>
+                    <RescheduleControls bookingId={b.id} days={days} />
                   </li>
                 ))}
               </ul>
@@ -117,8 +133,11 @@ export default async function Dashboard() {
           )}
         </section>
 
-        {/* Messages */}
-        <section>
+        {/* Right column */}
+        <section className="space-y-6">
+          <Panel title="My health profile">
+            <IntakeForm initial={intake} />
+          </Panel>
           <Panel title="Messages" full>
             <MessageThread messages={messages} patientId={user.id} />
           </Panel>
@@ -140,7 +159,7 @@ function Panel({
   return (
     <div className="rounded-2xl bg-white ring-1 ring-brand-100 p-5">
       <h2 className="font-semibold text-brand-900 mb-4">{title}</h2>
-      <div className={full ? "h-[420px]" : ""}>{children}</div>
+      <div className={full ? "h-[420px] flex flex-col" : ""}>{children}</div>
     </div>
   );
 }

@@ -60,6 +60,30 @@ export interface Message {
   createdAt: string;
 }
 
+export interface ProgressLog {
+  id: string;
+  patientId: string;
+  date: string; // YYYY-MM-DD
+  weightKg: number;
+  waistCm?: number | null;
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface Intake {
+  patientId: string;
+  age?: number | null;
+  heightCm?: number | null;
+  startWeightKg?: number | null;
+  goalWeightKg?: number | null;
+  activityLevel?: string | null; // sedentary | light | moderate | active
+  dietPref?: string | null; // veg | non-veg | vegan | eggetarian
+  conditions?: string | null;
+  allergies?: string | null;
+  goals?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface DB {
   users: User[];
   services: Service[];

@@ -5,10 +5,13 @@ import {
   listPatients,
   listDocsForPatient,
   listMessagesForPatient,
+  listProgress,
+  getIntake,
 } from "@/lib/store";
 import { formatMoney } from "@/lib/slots";
 import { AdminConsole } from "@/components/AdminConsole";
 import { toSafe } from "@/lib/session";
+import { BarChart, type Bar } from "@/components/BarChart";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -21,6 +24,8 @@ export default async function AdminPage() {
       user: toSafe(p),
       docs: await listDocsForPatient(p.id),
       messages: await listMessagesForPatient(p.id),
+      progress: await listProgress(p.id),
+      intake: await getIntake(p.id),
       bookings: bookings.filter((b) => b.patientId === p.id),
     }))
   );
@@ -30,6 +35,31 @@ export default async function AdminPage() {
   const revenue = bookings
     .filter((b) => b.payment === "paid")
     .reduce((sum, b) => sum + b.amountCents, 0);
+
+  // Last 6 months analytics
+  const base = new Date();
+  base.setDate(1);
+  const months: { key: string; label: string }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(base);
+    d.setMonth(base.getMonth() - i);
+    months.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: d.toLocaleDateString("en-IN", { month: "short" }),
+    });
+  }
+  const bookingBars: Bar[] = months.map((m) => ({
+    label: m.label,
+    value: bookings.filter((b) => b.date.slice(0, 7) === m.key && b.status !== "cancelled").length,
+  }));
+  const revenueBars: Bar[] = months.map((m) => ({
+    label: m.label,
+    value: Math.round(
+      bookings
+        .filter((b) => b.date.slice(0, 7) === m.key && b.payment === "paid")
+        .reduce((s, b) => s + b.amountCents, 0) / 100
+    ),
+  }));
 
   const adminName = user.name || "Nutritionist";
 
@@ -46,6 +76,16 @@ export default async function AdminPage() {
         <Stat label="Revenue (paid)" value={formatMoney(revenue)} />
       </div>
 
+      {/* Analytics */}
+      <div className="mt-6 grid md:grid-cols-2 gap-4">
+        <Card title="Sessions — last 6 months">
+          <BarChart bars={bookingBars} />
+        </Card>
+        <Card title="Revenue (₹) — last 6 months">
+          <BarChart bars={revenueBars} valuePrefix="₹" />
+        </Card>
+      </div>
+
       <AdminConsole patients={patients} upcoming={upcoming} />
     </main>
   );
@@ -56,6 +96,15 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl bg-white ring-1 ring-brand-100 p-5">
       <div className="text-2xl font-bold text-brand-700">{value}</div>
       <div className="text-xs text-brand-600/70 mt-1">{label}</div>
+    </div>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl bg-white ring-1 ring-brand-100 p-5">
+      <h2 className="font-semibold text-brand-900 mb-3">{title}</h2>
+      {children}
     </div>
   );
 }

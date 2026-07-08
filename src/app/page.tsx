@@ -2,6 +2,8 @@ import Link from "next/link";
 import { practice } from "@/lib/config";
 import { listServices } from "@/lib/store";
 import { formatMoney } from "@/lib/slots";
+import { BmiCalculator } from "@/components/BmiCalculator";
+import { Faq } from "@/components/Faq";
 
 export default async function Home() {
   const services = await listServices();
@@ -113,6 +115,58 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Conditions */}
+      <section className="mx-auto max-w-6xl px-6 pb-4">
+        <div className="text-center max-w-2xl mx-auto">
+          <h2 className="text-3xl font-bold text-brand-900">Conditions I help with</h2>
+          <p className="mt-3 text-brand-800/70">
+            Food-first, doctor-friendly plans for the concerns I see most.
+          </p>
+        </div>
+        <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[
+            ["⚖️", "Weight loss"],
+            ["🩸", "Diabetes"],
+            ["🦋", "Thyroid"],
+            ["🌸", "PCOS / PCOD"],
+            ["❤️", "Cholesterol / BP"],
+            ["🌱", "Gut health"],
+          ].map(([icon, label]) => (
+            <div
+              key={label}
+              className="rounded-2xl bg-white ring-1 ring-brand-100 p-4 text-center hover:ring-brand-300 transition"
+            >
+              <div className="text-2xl">{icon}</div>
+              <div className="mt-2 text-sm font-medium text-brand-900">{label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* BMI calculator */}
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <div className="grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <h2 className="text-3xl font-bold text-brand-900">Know your starting point</h2>
+            <p className="mt-4 text-brand-800/80 max-w-prose">
+              Your BMI is just one number — but it&apos;s a useful place to begin. Try the quick
+              check, then let&apos;s build a plan around your body, labs, and lifestyle.
+            </p>
+            <ul className="mt-6 space-y-2 text-sm text-brand-800/80">
+              {["Personalised, not generic", "Indian home-cooked meals", "Ongoing WhatsApp-style support"].map(
+                (t) => (
+                  <li key={t} className="flex items-center gap-2">
+                    <span className="text-brand-500">✓</span>
+                    {t}
+                  </li>
+                )
+              )}
+            </ul>
+          </div>
+          <BmiCalculator />
+        </div>
+      </section>
+
       {/* How it works */}
       <section className="bg-cream border-y border-brand-100">
         <div className="mx-auto max-w-6xl px-6 py-20">
@@ -152,6 +206,14 @@ export default async function Home() {
             </figure>
           ))}
         </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <h2 className="text-3xl font-bold text-brand-900 text-center mb-10">
+          Frequently asked questions
+        </h2>
+        <Faq />
       </section>
 
       {/* CTA */}

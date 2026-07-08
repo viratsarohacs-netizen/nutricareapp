@@ -9,6 +9,8 @@ import type {
   DocType,
   BookingStatus,
   PaymentStatus,
+  ProgressLog,
+  Intake,
 } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,6 +165,8 @@ export async function updateBooking(
   if (patch.status !== undefined) dbPatch.status = patch.status;
   if (patch.payment !== undefined) dbPatch.payment = patch.payment;
   if (patch.notes !== undefined) dbPatch.notes = patch.notes;
+  if (patch.date !== undefined) dbPatch.date = patch.date;
+  if (patch.time !== undefined) dbPatch.time = patch.time;
   const { data, error } = await supabase
     .from("bookings")
     .update(dbPatch)
@@ -262,4 +266,103 @@ export async function createPatient(input: {
     };
   }
   return { id: data.user.id };
+}
+
+// ── Progress logs ────────────────────────────────────────────────────────────
+function toProgress(r: any): ProgressLog {
+  return {
+    id: r.id,
+    patientId: r.patient_id,
+    date: r.date,
+    weightKg: Number(r.weight_kg),
+    waistCm: r.waist_cm != null ? Number(r.waist_cm) : null,
+    note: r.note ?? null,
+    createdAt: r.created_at,
+  };
+}
+
+export async function listProgress(patientId: string): Promise<ProgressLog[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("progress_logs")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("date");
+  return (data ?? []).map(toProgress);
+}
+
+export async function addProgress(input: {
+  patientId: string;
+  date: string;
+  weightKg: number;
+  waistCm?: number | null;
+  note?: string | null;
+}): Promise<ProgressLog | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("progress_logs")
+    .insert({
+      patient_id: input.patientId,
+      date: input.date,
+      weight_kg: input.weightKg,
+      waist_cm: input.waistCm ?? null,
+      note: input.note ?? null,
+    })
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return toProgress(data);
+}
+
+// ── Intake ───────────────────────────────────────────────────────────────────
+function toIntake(r: any): Intake {
+  return {
+    patientId: r.patient_id,
+    age: r.age,
+    heightCm: r.height_cm != null ? Number(r.height_cm) : null,
+    startWeightKg: r.start_weight_kg != null ? Number(r.start_weight_kg) : null,
+    goalWeightKg: r.goal_weight_kg != null ? Number(r.goal_weight_kg) : null,
+    activityLevel: r.activity_level,
+    dietPref: r.diet_pref,
+    conditions: r.conditions,
+    allergies: r.allergies,
+    goals: r.goals,
+    updatedAt: r.updated_at,
+  };
+}
+
+export async function getIntake(patientId: string): Promise<Intake | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("intakes")
+    .select("*")
+    .eq("patient_id", patientId)
+    .maybeSingle();
+  return data ? toIntake(data) : null;
+}
+
+export async function upsertIntake(input: Intake): Promise<Intake | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("intakes")
+    .upsert(
+      {
+        patient_id: input.patientId,
+        age: input.age ?? null,
+        height_cm: input.heightCm ?? null,
+        start_weight_kg: input.startWeightKg ?? null,
+        goal_weight_kg: input.goalWeightKg ?? null,
+        activity_level: input.activityLevel ?? null,
+        diet_pref: input.dietPref ?? null,
+        conditions: input.conditions ?? null,
+        allergies: input.allergies ?? null,
+        goals: input.goals ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "patient_id" }
+    )
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return toIntake(data);
 }
