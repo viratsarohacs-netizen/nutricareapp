@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { submitReview, setReviewApproval } from "@/lib/store";
 import { getCurrentUser } from "@/lib/session";
+import { notifyReviewSubmitted, isTestEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
       { status: 409 }
     );
   }
+  if (!isTestEmail(user.email)) await notifyReviewSubmitted(review);
   return NextResponse.json({ ok: true, review });
 }
 

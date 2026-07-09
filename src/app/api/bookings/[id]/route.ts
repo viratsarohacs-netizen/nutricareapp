@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { updateBooking } from "@/lib/store";
 import { getCurrentUser } from "@/lib/session";
+import { notifyBookingChanged, isTestEmail } from "@/lib/email";
 import type { Booking } from "@/lib/types";
 
 export async function PATCH(
@@ -27,5 +28,14 @@ export async function PATCH(
 
   const updated = await updateBooking(id, patch);
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Notify only on schedule-affecting changes (not payment/notes tweaks).
+  if (!isTestEmail(updated.patientEmail)) {
+    if (patch.status === "cancelled") {
+      await notifyBookingChanged(updated, "cancelled");
+    } else if (patch.date !== undefined || patch.time !== undefined) {
+      await notifyBookingChanged(updated, "rescheduled");
+    }
+  }
   return NextResponse.json({ ok: true, booking: updated });
 }

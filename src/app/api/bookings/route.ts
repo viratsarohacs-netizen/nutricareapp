@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createBooking, createPatient, findService, bookedSlots } from "@/lib/store";
 import { getCurrentUser, signIn } from "@/lib/session";
+import { notifyBookingConfirmed, isTestEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -60,6 +61,9 @@ export async function POST(req: Request) {
 
   if (!booking) {
     return NextResponse.json({ error: "Could not create booking." }, { status: 500 });
+  }
+  if (!isTestEmail(booking.patientEmail)) {
+    await notifyBookingConfirmed(booking); // fail-safe: never throws
   }
   return NextResponse.json({ ok: true, booking });
 }

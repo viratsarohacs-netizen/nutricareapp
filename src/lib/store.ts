@@ -621,3 +621,10 @@ export async function deleteLibraryMeal(id: string): Promise<boolean> {
   const { error } = await supabase.from("meal_library").delete().eq("id", id);
   return !error;
 }
+
+// Look up a single profile (admin context: RLS lets admin read any profile).
+export async function findPatientById(id: string): Promise<User | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
+  return data ? toUser(data) : null;
+}

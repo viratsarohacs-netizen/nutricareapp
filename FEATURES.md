@@ -79,6 +79,7 @@ Legend: ✅ live · 🔜 planned · 💤 deferred
 | Daily keep-alive cron (prevents free-tier DB auto-pause) | ✅ | `vercel.json` cron 03:00 UTC → `/api/keepalive` |
 | Preview deployments on non-main branches / PRs | ✅ | Vercel default |
 | E2E smoke-test suite (21 tests: auth, booking, tracker, RLS, admin flows) | ✅ | `node scripts/smoke-test.mjs [--url <prod>]`; self-cleaning test data |
+| Email notifications via Gmail SMTP — booking confirmed / rescheduled / cancelled (patient + admin), plan & doc shared (patient), review submitted (admin) | ✅ | `src/lib/email.ts`; env `GMAIL_USER` + `GMAIL_APP_PASSWORD`; fail-safe (never breaks the API action); test accounts never email anyone |
 | `feature-tester` agent — extends + runs the suite after each new feature | ✅ | `.claude/agents/feature-tester.md`; creds from `.env.local`, never committed |
 
 ## 7. Planned / backlog
@@ -86,7 +87,6 @@ Legend: ✅ live · 🔜 planned · 💤 deferred
 | Feature | Status | Notes |
 |---|---|---|
 | Razorpay online payments | 🔜 | `bookings.payment` already models paid/unpaid |
-| Email notifications (booking confirmations, reminders) | 🔜 | Needs a Resend (or similar) account |
 | Custom domain | 🔜 | e.g. `.com` ~$11/yr via Vercel |
 | Video consultations (Zoom/Meet link per booking → built-in later) | 💤 | Deferred by scope decision |
 | **Android app** (React Native, reusing this Supabase backend + API routes) | 🔜 | All APIs are mobile-ready JSON |

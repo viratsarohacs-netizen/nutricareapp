@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { createDoc } from "@/lib/store";
+import { createDoc, findPatientById } from "@/lib/store";
 import { getCurrentUser } from "@/lib/session";
+import { notifyDocShared } from "@/lib/email";
 import type { DocType } from "@/lib/types";
 
 export async function POST(req: Request) {
@@ -20,5 +21,8 @@ export async function POST(req: Request) {
     createdBy: user.name,
   });
   if (!doc) return NextResponse.json({ error: "Could not save document." }, { status: 500 });
+
+  const patient = await findPatientById(patientId);
+  if (patient) await notifyDocShared(patient.email, patient.name, doc);
   return NextResponse.json({ ok: true, doc });
 }

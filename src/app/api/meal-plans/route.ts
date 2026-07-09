@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { createMealPlan } from "@/lib/store";
+import { createMealPlan, findPatientById } from "@/lib/store";
 import { getCurrentUser } from "@/lib/session";
+import { notifyPlanShared } from "@/lib/email";
 import type { MealDay } from "@/lib/types";
 
 export async function POST(req: Request) {
@@ -30,5 +31,8 @@ export async function POST(req: Request) {
     createdBy: user.name,
   });
   if (!plan) return NextResponse.json({ error: "Could not save plan." }, { status: 500 });
+
+  const patient = await findPatientById(patientId);
+  if (patient) await notifyPlanShared(patient.email, patient.name, plan);
   return NextResponse.json({ ok: true, plan });
 }
