@@ -78,6 +78,8 @@ Legend: ✅ live · 🔜 planned · 💤 deferred
 | Vercel hosting + GitHub auto-deploy (push to `main` = production) | ✅ | Project `nutricare`; ~2–3 min builds |
 | Daily keep-alive cron (prevents free-tier DB auto-pause) | ✅ | `vercel.json` cron 03:00 UTC → `/api/keepalive` |
 | Preview deployments on non-main branches / PRs | ✅ | Vercel default |
+| E2E smoke-test suite (21 tests: auth, booking, tracker, RLS, admin flows) | ✅ | `node scripts/smoke-test.mjs [--url <prod>]`; self-cleaning test data |
+| `feature-tester` agent — extends + runs the suite after each new feature | ✅ | `.claude/agents/feature-tester.md`; creds from `.env.local`, never committed |
 
 ## 7. Planned / backlog
 
