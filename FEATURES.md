@@ -69,6 +69,10 @@ Legend: ✅ live · 🔜 planned · 💤 deferred
 | Row Level Security on every table | ✅ | Patients only see their own rows; `is_admin()` helper |
 | Route guarding (`/dashboard`, `/admin`) + session refresh | ✅ | `src/proxy.ts` (matcher excludes `/api`!) |
 | Secrets in `.env.local` (local) / Vercel env vars (prod) — never in git | ✅ | |
+| **Password reset** — forgot-password email link (1h, single-use, hashed tokens) | ✅ | `password_resets` table (service-role only), `/api/auth/{forgot,reset}-password`, `/forgot-password` + `/reset-password` pages |
+| Security headers (HSTS, X-Frame-Options DENY, nosniff, referrer, permissions) | ✅ | `next.config.ts` |
+| Rate limiting on auth endpoints (login/signup/forgot/reset) | ✅ | `src/lib/rateLimit.ts` — in-memory, per-instance |
+| No user enumeration (forgot-password always answers ok) | ✅ | |
 
 ## 6. Infrastructure
 
@@ -80,6 +84,12 @@ Legend: ✅ live · 🔜 planned · 💤 deferred
 | Preview deployments on non-main branches / PRs | ✅ | Vercel default |
 | E2E smoke-test suite (21 tests: auth, booking, tracker, RLS, admin flows) | ✅ | `node scripts/smoke-test.mjs [--url <prod>]`; self-cleaning test data |
 | Email notifications via Gmail SMTP — booking confirmed / rescheduled / cancelled (patient + admin), plan & doc shared (patient), review submitted (admin) | ✅ | `src/lib/email.ts`; env `GMAIL_USER` + `GMAIL_APP_PASSWORD`; fail-safe (never breaks the API action); test accounts never email anyone |
+| **Appointment reminders** — daily cron emails patients with tomorrow's session + schedule summary to the dietitian | ✅ | `/api/reminders`, cron 02:30 UTC (08:00 IST) in `vercel.json`; optional `CRON_SECRET` guard |
+| Legal pages: privacy (DPDP-aware), terms, medical disclaimer + footer links | ✅ | `/privacy`, `/terms`, `/disclaimer`, `LegalPage.tsx` |
+| SEO: Open Graph/Twitter meta, sitemap.xml, robots.txt, leaf favicon | ✅ | `layout.tsx` metadata, `app/{sitemap,robots}.ts`, `app/icon.svg` |
+| Branded 404 + error pages | ✅ | `app/not-found.tsx`, `app/error.tsx` |
+| WhatsApp chat button (config-gated) | ✅ | `WhatsAppButton.tsx`; set `practice.whatsapp` in `config.ts` to enable |
+| Vercel Analytics (privacy-friendly page analytics) | ✅ | `@vercel/analytics` in layout |
 | `feature-tester` agent — extends + runs the suite after each new feature | ✅ | `.claude/agents/feature-tester.md`; creds from `.env.local`, never committed |
 
 ## 7. Planned / backlog

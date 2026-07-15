@@ -115,6 +115,30 @@ let reviewId = null;
 
 console.log(`\nNutriCare smoke tests → ${BASE}\n`);
 
+// Warm-up: in `next dev`, routes compile on first hit and can 404 mid-compile.
+// Touch every route once (ignore results) so assertions never race the compiler.
+{
+  const warm = makeSession();
+  const touches = [
+    ["/api/keepalive"], ["/api/slots?date=2030-01-01"], ["/"], ["/login"],
+    ["/api/auth/login", { method: "POST", body: {} }],
+    ["/api/auth/signup", { method: "POST", body: {} }],
+    ["/api/auth/forgot-password", { method: "POST", body: {} }],
+    ["/api/auth/reset-password", { method: "POST", body: {} }],
+    ["/api/bookings", { method: "POST", body: {} }],
+    ["/api/habits", { method: "POST", body: {} }],
+    ["/api/food-logs", { method: "POST", body: {} }],
+    ["/api/progress", { method: "POST", body: {} }],
+    ["/api/intake", { method: "POST", body: {} }],
+    ["/api/reviews", { method: "POST", body: {} }],
+    ["/api/meal-plans", { method: "POST", body: {} }],
+    ["/api/meal-library"], ["/api/docs", { method: "POST", body: {} }],
+    ["/api/messages", { method: "POST", body: {} }],
+    ["/api/bookings/warmup", { method: "PATCH", body: {} }],
+  ];
+  await Promise.allSettled(touches.map(([p, o]) => warm(p, o)));
+}
+
 // 1. health
 await test("keepalive / DB reachable", async () => {
   const r = await anon("/api/keepalive");
@@ -309,12 +333,97 @@ await test("admin approves review → visible on public home", async () => {
   await admin("/api/reviews", { method: "PATCH", body: { id: reviewId, approved: false } });
 });
 
-// 9. pages render
-await test("pages render (/, /book, /login)", async () => {
-  for (const p of ["/", "/book", "/login"]) {
+// 9. password reset — full flow with a token planted via service role
+await test("password reset: full flow (request → token → new password → login)", async () => {
+  // request (never reveals account existence)
+  const req1 = await anon("/api/auth/forgot-password", {
+    method: "POST",
+    body: { email: P1.email },
+  });
+  expect(req1.status === 200 && req1.json?.ok, `request → ${req1.status}`);
+  const reqNone = await anon("/api/auth/forgot-password", {
+    method: "POST",
+    body: { email: `ghost.${ts}@nowhere.example` },
+  });
+  expect(reqNone.status === 200 && reqNone.json?.ok, "unknown email leaked existence");
+
+  // plant a known token directly (email is suppressed for test accounts)
+  const { createHash } = await import("node:crypto");
+  const sr = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const knownToken = `smoketoken${ts}`;
+  const { error: insErr } = await sr.from("password_resets").insert({
+    user_id: p1Id,
+    token_hash: createHash("sha256").update(knownToken).digest("hex"),
+    expires_at: new Date(Date.now() + 3600_000).toISOString(),
+  });
+  expect(!insErr, `token insert failed: ${insErr?.message}`);
+
+  // bad token rejected
+  const bad = await anon("/api/auth/reset-password", {
+    method: "POST",
+    body: { token: "bogus", password: "NewPass@123" },
+  });
+  expect(bad.status === 400, `bad token → ${bad.status}`);
+
+  // good token works once
+  const good = await anon("/api/auth/reset-password", {
+    method: "POST",
+    body: { token: knownToken, password: "NewPass@123" },
+  });
+  expect(good.status === 200 && good.json?.ok, JSON.stringify(good.json));
+
+  // token cannot be replayed
+  const replay = await anon("/api/auth/reset-password", {
+    method: "POST",
+    body: { token: knownToken, password: "Another@123" },
+  });
+  expect(replay.status === 400, "used token was accepted again");
+
+  // login works with the NEW password only
+  const oldLogin = await makeSession()("/api/auth/login", {
+    method: "POST",
+    body: { email: P1.email, password: P1.password },
+  });
+  expect(oldLogin.status === 401, "old password still works");
+  const newLogin = await makeSession()("/api/auth/login", {
+    method: "POST",
+    body: { email: P1.email, password: "NewPass@123" },
+  });
+  expect(newLogin.status === 200, "new password rejected");
+});
+
+// 10. reminders endpoint
+await test("reminders endpoint runs (cron target)", async () => {
+  const r = await anon("/api/reminders");
+  // 200 when CRON_SECRET unset; 401 when it's enforced — both healthy
+  expect(r.status === 200 || r.status === 401, `status ${r.status}`);
+});
+
+// 11. pages + legal + security headers
+await test("pages render (/, /book, /login, /forgot-password)", async () => {
+  for (const p of ["/", "/book", "/login", "/forgot-password"]) {
     const r = await anon(p);
     expect(r.status === 200, `${p} → ${r.status}`);
   }
+});
+await test("legal pages render (privacy, terms, disclaimer)", async () => {
+  for (const p of ["/privacy", "/terms", "/disclaimer"]) {
+    const r = await anon(p);
+    expect(r.status === 200, `${p} → ${r.status}`);
+  }
+});
+await test("security headers present", async () => {
+  const res = await fetch(BASE + "/", { redirect: "manual" });
+  for (const h of ["x-frame-options", "x-content-type-options", "referrer-policy"]) {
+    expect(res.headers.get(h), `missing header ${h}`);
+  }
+});
+await test("sitemap + robots served", async () => {
+  const s = await anon("/sitemap.xml");
+  const r = await anon("/robots.txt");
+  expect(s.status === 200 && r.status === 200, `${s.status}/${r.status}`);
 });
 
 // ── cleanup (service-role) ───────────────────────────────────────────────────

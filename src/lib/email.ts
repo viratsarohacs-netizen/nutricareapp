@@ -176,6 +176,49 @@ export async function notifyDocShared(
   );
 }
 
+export async function sendPasswordReset(to: string, name: string, resetUrl: string): Promise<void> {
+  await send(
+    to,
+    "Reset your NutriCare password",
+    `<p>Hi ${name.split(" ")[0] || "there"},</p>
+     <p>We received a request to reset your password. Click below to choose a new one — the link is valid for <strong>1 hour</strong>.</p>
+     ${btn(resetUrl, "Reset my password")}
+     <p style="color:#6b7f72;font-size:12px;">If you didn't request this, you can safely ignore this email — your password won't change.</p>`
+  );
+}
+
+export async function sendAppointmentReminder(b: Booking): Promise<void> {
+  await send(
+    b.patientEmail,
+    `Reminder: ${b.serviceName} tomorrow at ${formatTime(b.time)}`,
+    `<p>Hi ${b.patientName.split(" ")[0]},</p>
+     <p>A friendly reminder about your session tomorrow:</p>
+     ${bookingTable(b)}
+     <p>Please keep your recent food log and any reports handy. Need to change the time? You can reschedule from your portal.</p>
+     ${btn(PORTAL, "View / reschedule")}
+     <p>See you tomorrow!<br/>${practice.name}</p>`
+  );
+}
+
+export async function sendAdminDailySummary(bookings: Booking[]): Promise<void> {
+  if (bookings.length === 0) return;
+  const rows = bookings
+    .map(
+      (b) =>
+        `<tr><td style="padding:6px 10px;border-bottom:1px solid #eefaf1;">${formatTime(b.time)}</td>
+         <td style="padding:6px 10px;border-bottom:1px solid #eefaf1;"><strong>${b.patientName}</strong></td>
+         <td style="padding:6px 10px;border-bottom:1px solid #eefaf1;">${b.serviceName}</td></tr>`
+    )
+    .join("");
+  await send(
+    practice.email,
+    `📋 Tomorrow's schedule — ${bookings.length} session${bookings.length > 1 ? "s" : ""}`,
+    `<p>Here's your day tomorrow:</p>
+     <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;">${rows}</table>
+     ${btn(ADMIN_URL, "Open practice dashboard")}`
+  );
+}
+
 export async function notifyReviewSubmitted(review: Review): Promise<void> {
   await send(
     practice.email,

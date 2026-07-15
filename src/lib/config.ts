@@ -14,6 +14,9 @@ export const practice = {
     "I'm a clinical dietitian who helps people manage PCOS, thyroid, diabetes, and weight through personalised Indian meal plans and 1:1 online consultations — no fad diets, no starving, just results that last.",
   email: "dieticianpragya@gmail.com",
   phone: "+91 98xxx xxxxx",
+  // WhatsApp number in international format WITHOUT + or spaces (e.g. "919812345678").
+  // Leave "" to hide the WhatsApp chat button.
+  whatsapp: "",
   location: "Online · India",
   currency: "INR",
   currencySymbol: "₹",
